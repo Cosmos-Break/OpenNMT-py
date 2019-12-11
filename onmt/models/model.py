@@ -54,3 +54,4 @@ class NMTModel(nn.Module):
     def update_dropout(self, dropout):
         self.encoder.update_dropout(dropout)
         self.decoder.update_dropout(dropout)
+

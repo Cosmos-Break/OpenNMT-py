@@ -749,47 +749,6 @@ def translate_opts(parser):
               help="Using grayscale image can training "
                    "model faster and smaller")
 
-#####################################################################
-# Command-line parameters for multi-modal NMT through finetuning
-#####################################################################
-
-def mmod_finetune_opts(parser):
-    parser.add_argument('-path_to_train_img_feats', required=True,
-                        help="""Path to npy file containing training image features""")
-    parser.add_argument('-path_to_train_feat_indices', default=None,
-                        help="""Path to text file containing one line per training
-                        sentence pair, giving the index into the image feature matrix,
-                        or -1 to use the mean vector.
-                        If omitted, examples and image features are assumed to be
-                        in the same order.""")
-    parser.add_argument('-path_to_valid_img_feats', required=True,
-                        help="""Path to npy file containing validation image features""")
-    parser.add_argument('-dropout_imgs', type=float, default=0.5,
-                        help="Dropout probability applied to image features.")
-    parser.add_argument('--multimodal_model_type', required=True, type=str,
-                        choices=['generator', 'bank', 'bank+generator', 'imgw'],
-                        help="""Multi-modal NMT model type.""")
-    parser.add_argument('-mmod_generator_add', type=float, default=0.0,
-                        help="""Add smoothing to multimodal generator gate.""")
-    parser.add_argument('-mmod_freeze_generator', action='store_true',
-                        help="""Also freeze the projection in the generator,
-                        only training the added layer(s).""")
-    parser.add_argument('-mmod_use_hidden', action='store_true',
-                        help="""Use the decoder hidden state as input to
-                        the generator gate.""")
-
-def mmod_finetune_translate_opts(parser):
-    parser.add_argument('-path_to_test_img_feats', required=True,
-                        help="""Path to npy file containing test image features""")
-    parser.add_argument('--multimodal_model_type', required=True, type=str,
-                        choices=['generator', 'bank', 'bank+generator', 'imgw'],
-                        help="""Multi-modal NMT model type.""")
-    parser.add_argument('-mmod_generator_add', type=float, default=0.0,
-                        help="""Add smoothing to multimodal generator gate.""")
-    parser.add_argument('-mmod_use_hidden', action='store_true',
-                        help="""Use the decoder hidden state as input to
-                        the generator gate.""")
-
 
 # Copyright 2016 The Chromium Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
@@ -831,5 +790,3 @@ class DeprecateAction(configargparse.Action):
         help = self.help if self.help is not None else ""
         msg = "Flag '%s' is deprecated. %s" % (flag_name, help)
         raise configargparse.ArgumentTypeError(msg)
-
-

@@ -10,6 +10,7 @@ import torch.nn.functional as F
 import onmt
 from onmt.modules.sparse_losses import SparsemaxLoss
 from onmt.modules.sparse_activations import LogSparsemax
+from onmt.models import multimodal
 
 
 def build_loss_compute(model, tgt_field, opt, train=True):
@@ -56,6 +57,10 @@ def build_loss_compute(model, tgt_field, opt, train=True):
             lambda_coverage=opt.lambda_coverage
         )
     else:
+        if 'generator' in opt.multimodal_model_type:
+            compute = multimodal.MultiModalLossCompute(
+               criterion, loss_gen, lambda_coverage=opt.lambda_coverage,
+                lambda_align=opt.lambda_align)
         compute = NMTLossCompute(
             criterion, loss_gen, lambda_coverage=opt.lambda_coverage,
             lambda_align=opt.lambda_align)

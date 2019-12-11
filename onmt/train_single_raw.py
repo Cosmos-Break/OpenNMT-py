@@ -5,8 +5,7 @@ import os
 import torch
 
 from onmt.inputters.inputter import build_dataset_iter, \
-    load_old_vocab, old_style_vocab, build_dataset_iter_multiple, \
-    collect_features
+    load_old_vocab, old_style_vocab, build_dataset_iter_multiple
 from onmt.model_builder import build_model
 from onmt.utils.optimizers import Optimizer
 from onmt.utils.misc import set_random_seed
@@ -14,7 +13,6 @@ from onmt.trainer import build_trainer
 from onmt.models import build_model_saver
 from onmt.utils.logging import init_logger, logger
 from onmt.utils.parse import ArgumentParser
-import numpy as np
 
 
 def _check_save_model_path(opt):
@@ -41,36 +39,9 @@ def configure_process(opt, device_id):
     set_random_seed(opt.seed, device_id >= 0)
 
 
-def collect_report_features(fields):
-    src_features = collect_features(fields, side='src')
-    tgt_features = collect_features(fields, side='tgt')
-
-    for j, feat in enumerate(src_features):
-        print(' * src feature %d size = %d' % (j, len(fields[feat].vocab)))
-    for j, feat in enumerate(tgt_features):
-        print(' * tgt feature %d size = %d' % (j, len(fields[feat].vocab)))
-
 def main(opt, device_id, batch_queue=None, semaphore=None):
     # NOTE: It's important that ``opt`` has been validated and updated
     # at this point.
-    # start with loading the image features
-    train_img_feats = np.load(opt.path_to_train_img_feats)
-    valid_img_feats = np.load(opt.path_to_valid_img_feats)
-    train_img_feats = train_img_feats.astype(np.float32)
-    valid_img_feats = valid_img_feats.astype(np.float32)
-
-    if opt.path_to_train_feat_indices:
-        train_feat_indices = []
-        with open(opt.path_to_train_feat_indices, 'r') as fobj:
-            for line in fobj:
-                train_feat_indices.append(int(line))
-        train_feat_indices = np.array(train_feat_indices, dtype=np.int64)
-        # add mean feature, addressable by -1
-        mean_feat = train_img_feats.mean(axis=0, keepdims=True)
-        train_img_feats = np.concatenate([train_img_feats, mean_feat], axis=0)
-    else:
-        train_feat_indices = None
-
     configure_process(opt, device_id)
     init_logger(opt.log_file)
     assert len(opt.accum_count) == len(opt.accum_steps), \
@@ -109,13 +80,6 @@ def main(opt, device_id, batch_queue=None, semaphore=None):
             if sf.use_vocab:
                 logger.info(' * %s vocab size = %d' % (sn, len(sf.vocab)))
 
-
-    # Report src/tgt features.
-    collect_report_features(fields)
-
-    model_opt.img_feat_dim = train_img_feats.shape[1]
-
-
     # Build model.
     model = build_model(model_opt, opt, fields, checkpoint)
     n_params, enc, dec = _tally_parameters(model)
@@ -131,8 +95,7 @@ def main(opt, device_id, batch_queue=None, semaphore=None):
     model_saver = build_model_saver(model_opt, opt, model, fields, optim)
 
     trainer = build_trainer(
-        opt, device_id, model, fields, optim, train_img_feats, valid_img_feats, train_feat_indices,
-                model_opt,model_saver=model_saver)
+        opt, device_id, model, fields, optim, model_saver=model_saver)
 
     if batch_queue is None:
         if len(opt.data_ids) > 1:
@@ -162,10 +125,6 @@ def main(opt, device_id, batch_queue=None, semaphore=None):
 
     valid_iter = build_dataset_iter(
         "valid", fields, opt, is_train=False)
-
-    valid_sents = max(batch.indices.max().data[0] for batch in valid_iter)
-    print('valid', valid_sents, valid_img_feats.shape)
-    assert valid_sents == valid_img_feats.shape[0] - 1
 
     if len(opt.gpu_ranks):
         logger.info('Starting training on GPU: %s' % opt.gpu_ranks)

@@ -18,7 +18,6 @@ from onmt.modules.util_class import Cast
 from onmt.utils.misc import use_gpu
 from onmt.utils.logging import logger
 from onmt.utils.parse import ArgumentParser
-from onmt.models import multimodal, NMTModel
 
 
 def build_embeddings(opt, text_field, for_encoder=True):
@@ -133,25 +132,6 @@ def build_base_model(model_opt, fields, gpu, checkpoint=None, gpu_id=None):
         the NMTModel.
     """
 
-    try:
-        mmod_generator = 'generator' in model_opt.multimodal_model_type
-        mmod_bank = 'bank' in model_opt.multimodal_model_type
-        mmod_imgw = 'imgw' in model_opt.multimodal_model_type
-        mmod_model = mmod_bank or mmod_imgw
-    except AttributeError:
-        mmod_generator = False
-        mmod_bank = False
-        mmod_imgw = False
-        mmod_model = False
-    try:
-        mmod_generator_add = model_opt.mmod_generator_add
-    except AttributeError:
-        mmod_generator_add = 0.0
-    try:
-        mmod_use_hidden = model_opt.mmod_use_hidden
-    except AttributeError:
-        mmod_use_hidden = False
-
     # for back compat when attention_dropout was not defined
     try:
         model_opt.attention_dropout
@@ -189,18 +169,7 @@ def build_base_model(model_opt, fields, gpu, checkpoint=None, gpu_id=None):
         device = torch.device("cuda")
     elif not gpu:
         device = torch.device("cpu")
-
-    # Make Model
-    if mmod_model:
-        if mmod_bank:
-            bridge = multimodal.MultiModalMemoryBankGate(
-                model_opt.rnn_size, model_opt.img_feat_dim, add=mmod_generator_add)
-        else:
-            bridge = None
-        model = multimodal.MultiModalNMTModel(encoder, bridge, decoder, imgw=mmod_imgw)
-    else:
-        # Make NMTModel(= encoder + decoder).
-        model = NMTModel(encoder, decoder)
+    model = onmt.models.NMTModel(encoder, decoder)
 
     # Build Generator.
     if not model_opt.copy_attn:
@@ -222,12 +191,6 @@ def build_base_model(model_opt, fields, gpu, checkpoint=None, gpu_id=None):
         pad_idx = tgt_base_field.vocab.stoi[tgt_base_field.pad_token]
         generator = CopyGenerator(model_opt.dec_rnn_size, vocab_size, pad_idx)
 
-    if mmod_generator:
-        print('wrapping in a MultiModalGenerator')
-        generator = multimodal.MultiModalGenerator(
-            generator, model_opt.img_feat_dim,
-            add=mmod_generator_add, use_hidden=mmod_use_hidden)
-    
     # Load the model states from checkpoint or initialize them.
     if checkpoint is not None:
         # This preserves backward-compat for models using customed layernorm

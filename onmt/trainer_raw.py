@@ -16,8 +16,7 @@ import onmt.utils
 from onmt.utils.logging import logger
 
 
-def build_trainer(opt, device_id, model, fields, optim, train_img_feats, valid_img_feats, train_feat_indices,
-                model_opt, model_saver=None):
+def build_trainer(opt, device_id, model, fields, optim, model_saver=None):
     """
     Simplify `Trainer` creation based on user `opt`s*
 
@@ -34,8 +33,8 @@ def build_trainer(opt, device_id, model, fields, optim, train_img_feats, valid_i
 
     tgt_field = dict(fields)["tgt"].base_field
     train_loss = onmt.utils.loss.build_loss_compute(model, tgt_field, opt)
-    valid_loss = onmt.utils.loss.build_loss_compute(model, tgt_field, opt, train = False)
-    multimodal_model_type = opt.multimodal_model_type
+    valid_loss = onmt.utils.loss.build_loss_compute(
+        model, tgt_field, opt, train=False)
 
     trunc_size = opt.truncated_decoder  # Badly named...
     shard_size = opt.max_generator_batches if opt.model_dtype == 'fp32' else 0
@@ -71,10 +70,7 @@ def build_trainer(opt, device_id, model, fields, optim, train_img_feats, valid_i
                            model_dtype=opt.model_dtype,
                            earlystopper=earlystopper,
                            dropout=dropout,
-                           dropout_steps=dropout_steps,
-                           train_img_feats=train_img_feats, valid_img_feats=valid_img_feats,
-                           train_feat_indices=train_feat_indices,
-                           multimodal_model_type=multimodal_model_type)
+                           dropout_steps=dropout_steps)
     return trainer
 
 
@@ -111,10 +107,7 @@ class Trainer(object):
                  n_gpu=1, gpu_rank=1, gpu_verbose_level=0,
                  report_manager=None, with_align=False, model_saver=None,
                  average_decay=0, average_every=1, model_dtype='fp32',
-                 earlystopper=None, dropout=[0.3], dropout_steps=[0],
-                 train_img_feats=None, valid_img_feats=None,
-                 train_feat_indices=None,
-                 multimodal_model_type=None):
+                 earlystopper=None, dropout=[0.3], dropout_steps=[0]):
         # Basic attributes.
         self.model = model
         self.train_loss = train_loss
@@ -139,19 +132,7 @@ class Trainer(object):
         self.earlystopper = earlystopper
         self.dropout = dropout
         self.dropout_steps = dropout_steps
-        self.train_img_feats = train_img_feats
-        self.valid_img_feats = valid_img_feats
-        self.train_feat_indices = train_feat_indices
-        self.multimodal_model_type = multimodal_model_type
 
-        assert(not self.train_img_feats is None), \
-                'Must provide training image features!'
-        assert(not self.valid_img_feats is None), \
-                'Must provide validation image features!'
-        assert(self.multimodal_model_type in ['generator', 'bank', 'bank+generator', 'imgw']), \
-                'Invalid multimodal model type: %s!'%(self.multimodal_model_type)
-
-        
         for i in range(len(self.accum_count_l)):
             assert self.accum_count_l[i] > 0
             if self.accum_count_l[i] > 1:
@@ -331,31 +312,13 @@ class Trainer(object):
                 src, src_lengths = batch.src if isinstance(batch.src, tuple) \
                                    else (batch.src, None)
                 tgt = batch.tgt
-                # extract indices for all entries in the mini-batch
-
-                idxs = batch.indices.cpu().data.numpy()
-                # load image features for this minibatch into a pytorch Variable
-                img_feats = torch.from_numpy( self.valid_img_feats[idxs] )
-                img_feats = torch.autograd.Variable(img_feats, requires_grad=False)
-                if next(self.model.parameters()).is_cuda:
-                    img_feats = img_feats.cuda()
-                else:
-                    img_feats = img_feats.cpu()
 
                 # F-prop through the model.
-                if 'bank' in self.multimodal_model_type or 'imgw' in self.multimodal_model_type:
-                    outputs, attns = valid_model(src, tgt, src_lengths,
-                                                with_align=self.with_align,
-                                                img_feats=img_feats)
-                else:
-                    outputs, attns = valid_model(src, tgt, src_lengths,with_align=self.with_align)
-
+                outputs, attns = valid_model(src, tgt, src_lengths,
+                                             with_align=self.with_align)
 
                 # Compute loss.
-                if 'generator' in self.multimodal_model_type:
-                    _, batch_stats = self.valid_loss(batch, outputs, attns, img_feats=img_feats)
-                else:
-                    _, batch_stats = self.valid_loss(batch, outputs, attns)
+                _, batch_stats = self.valid_loss(batch, outputs, attns)
 
                 # Update statistics.
                 stats.update(batch_stats)
@@ -375,19 +338,6 @@ class Trainer(object):
             self.optim.zero_grad()
 
         for k, batch in enumerate(true_batches):
-            # extract indices for all entries in the mini-batch
-            idxs = batch.indices.cpu().data.numpy()
-            if self.train_feat_indices is not None:
-                idxs = self.train_feat_indices[idxs]
-            # load image features for this minibatch into a pytorch Variable
-            img_feats = torch.from_numpy( self.train_img_feats[idxs] )
-            img_feats = torch.autograd.Variable(img_feats, requires_grad=False)
-            if next(self.model.parameters()).is_cuda:
-                img_feats = img_feats.cuda()
-            else:
-                img_feats = img_feats.cpu()
-
-
             target_size = batch.tgt.size(0)
             # Truncated BPTT: reminder not compatible with accum > 1
             if self.trunc_size:
@@ -410,35 +360,21 @@ class Trainer(object):
                 # 2. F-prop all but generator.
                 if self.accum_count == 1:
                     self.optim.zero_grad()
-                if 'bank' in self.multimodal_model_type or 'imgw' in self.multimodal_model_type:
-                    outputs, attns = self.model(src, tgt, src_lengths, bptt=bptt,
-                                            with_align=self.with_align, img_feats=img_feats)
-                else:
-                    outputs, attns = self.model(src, tgt, src_lengths, bptt=bptt,
+
+                outputs, attns = self.model(src, tgt, src_lengths, bptt=bptt,
                                             with_align=self.with_align)
                 bptt = True
 
                 # 3. Compute loss.
                 try:
-                    if 'generator' in self.multimodal_model_type:
-                        loss, batch_stats = self.train_loss(
-                            batch,
-                            outputs,
-                            attns,
-                            normalization=normalization,
-                            shard_size=self.shard_size,
-                            trunc_start=j,
-                            trunc_size=trunc_size,
-                            img_feats=img_feats)
-                    else:
-                        loss, batch_stats = self.train_loss(
-                            batch,
-                            outputs,
-                            attns,
-                            normalization=normalization,
-                            shard_size=self.shard_size,
-                            trunc_start=j,
-                            trunc_size=trunc_size)
+                    loss, batch_stats = self.train_loss(
+                        batch,
+                        outputs,
+                        attns,
+                        normalization=normalization,
+                        shard_size=self.shard_size,
+                        trunc_start=j,
+                        trunc_size=trunc_size)
 
                     if loss is not None:
                         self.optim.backward(loss)

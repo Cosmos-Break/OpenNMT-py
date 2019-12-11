@@ -24,6 +24,20 @@ from onmt.inputters.image_dataset import (  # noqa: F401
     batch_img as make_img)
 
 import gc
+from itertools import count
+
+def collect_features(fields, side="src"):
+    """
+    Collect features from Field object.
+    """
+    assert side in ["src", "tgt"]
+    feats = []
+    for j in count():
+        key = side + "_feat_" + str(j)
+        if key not in fields:
+            break
+        feats.append(key)
+    return feats
 
 
 # monkey-patch to make torchtext Vocab's pickleable
