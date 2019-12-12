@@ -411,10 +411,10 @@ class Trainer(object):
                 if self.accum_count == 1:
                     self.optim.zero_grad()
                 if 'bank' in self.multimodal_model_type or 'imgw' in self.multimodal_model_type:
-                    outputs, attns = self.model(src, tgt, src_lengths, bptt=bptt,
+                    outputs, attns = self.model(src, tgt, lengths=src_lengths, bptt=bptt,
                                             with_align=self.with_align, img_feats=img_feats)
                 else:
-                    outputs, attns = self.model(src, tgt, src_lengths, bptt=bptt,
+                    outputs, attns = self.model(src, tgt, lengths=src_lengths, bptt=bptt,
                                             with_align=self.with_align)
                 bptt = True
 

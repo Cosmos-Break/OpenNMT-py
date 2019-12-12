@@ -1,7 +1,7 @@
 """
 Implementation of "Attention is All You Need"
 """
-
+import torch
 import torch.nn as nn
 
 from onmt.encoders.encoder import EncoderBase
@@ -167,6 +167,21 @@ class MultiModalTransformerEncoder(TransformerEncoder):
             attention_dropout, embeddings, max_relative_positions)
         self.img_to_emb = nn.Linear(img_feat_size, d_model, bias=True)
 
+    @classmethod
+    def from_opt(cls, opt, embeddings):
+        """Alternate constructor."""
+        return cls(
+            opt.enc_layers,
+            opt.enc_rnn_size,
+            opt.heads,
+            opt.transformer_ff,
+            opt.dropout[0] if type(opt.dropout) is list else opt.dropout,
+            opt.attention_dropout[0] if type(opt.attention_dropout)
+            is list else opt.attention_dropout,
+            embeddings,
+            opt.max_relative_positions,
+            opt.img_feat_dim)
+
     def forward(self, src, img_feats, lengths=None):
         """See :func:`EncoderBase.forward()`"""
         self._check_args(src, lengths)
@@ -195,10 +210,14 @@ class MultiModalTransformerEncoder(TransformerEncoder):
         mask = words.data.eq(padding_idx).unsqueeze(1) \
             .expand(w_batch, w_len, w_len)
         # Run the forward pass of every layer of the tranformer.
-        for i in range(self.num_layers):
-            out = self.transformer[i](out, mask)
+        for layer in self.transformer:
+            out = layer(out, mask)
         out = self.layer_norm(out)
 
         return emb, out.transpose(0, 1).contiguous(), lengths
 
 
+# # Run the forward pass of every layer of the tranformer.
+#         for layer in self.transformer:
+#             out = layer(out, mask)
+#         out = self.layer_norm(out)

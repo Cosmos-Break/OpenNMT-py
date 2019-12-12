@@ -163,9 +163,6 @@ def main(opt, device_id, batch_queue=None, semaphore=None):
     valid_iter = build_dataset_iter(
         "valid", fields, opt, is_train=False)
 
-    valid_sents = max(batch.indices.max().data[0] for batch in valid_iter)
-    print('valid', valid_sents, valid_img_feats.shape)
-    assert valid_sents == valid_img_feats.shape[0] - 1
 
     if len(opt.gpu_ranks):
         logger.info('Starting training on GPU: %s' % opt.gpu_ranks)

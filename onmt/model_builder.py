@@ -65,15 +65,20 @@ def build_embeddings(opt, text_field, for_encoder=True):
     return emb
 
 
-def build_encoder(opt, embeddings):
+def build_encoder(opt, embeddings, mmod_imgw=False):
     """
     Various encoder dispatcher function.
     Args:
         opt: the option in current environment.
         embeddings (Embeddings): vocab embeddings for this encoder.
     """
-    enc_type = opt.encoder_type if opt.model_type == "text" \
-        or opt.model_type == "vec" else opt.model_type
+    if opt.model_type == "text" or opt.model_type == "vec":
+        if mmod_imgw:
+            enc_type = "mmTransformer"
+        else:
+            enc_type = opt.encoder_type
+    else:
+        enc_type = opt.model_type
     return str2enc[enc_type].from_opt(opt, embeddings)
 
 
@@ -166,7 +171,7 @@ def build_base_model(model_opt, fields, gpu, checkpoint=None, gpu_id=None):
         src_emb = None
 
     # Build encoder.
-    encoder = build_encoder(model_opt, src_emb)
+    encoder = build_encoder(model_opt, src_emb, mmod_imgw=mmod_imgw)
 
     # Build decoder.
     tgt_field = fields["tgt"]

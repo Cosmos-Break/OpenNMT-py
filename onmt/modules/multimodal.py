@@ -54,11 +54,11 @@ class MultiModalNMTModel(nn.Module):
         dec_in = tgt[:-1]  # exclude last target from inputs
 
         if self.imgw:
-            enc_state, memory_bank, lengths = self.encoder(src, img_feats, lengths)
+            enc_state, memory_bank, lengths = self.encoder(src, img_feats, lengths=lengths)
             # expand indices to account for image "word"
             src = torch.cat([src[0:1,:,:], src], dim=0)
         else:
-            enc_state, memory_bank, lengths = self.encoder(src, lengths)
+            enc_state, memory_bank, lengths = self.encoder(src, lengths=lengths)
         if self.bridge is not None:
             memory_bank = self.bridge(memory_bank, img_feats, src.size(0))
 
@@ -152,61 +152,6 @@ class MultiModalLossCompute(NMTLossCompute):
         ### Copypasta ends
 
 
-        
-
-
-class MultiModalTransformerEncoder(onmt.encoders.transformer.TransformerEncoder):
-    """
-    The Transformer encoder from "Attention is All You Need".
-
-
-    .. mermaid::
-
-       graph BT
-          A[input]
-          B[multi-head self-attn]
-          C[feed forward]
-          O[output]
-          A --> B
-          B --> C
-          C --> O
-
-
-
-    Args:
-       num_layers (int): number of encoder layers
-       hidden_size (int): number of hidden units
-       dropout (float): dropout parameters
-       embeddings (:obj:`onmt.modules.Embeddings`):
-          embeddings to use, should have positional encodings
-    """
-    def __init__(self, num_layers, d_model, heads, d_ff, dropout,
-                 attention_dropout, embeddings, max_relative_positions, img_feat_size):
-        super(MultiModalTransformerEncoder, self).__init__(
-            num_layers, d_model, heads, d_ff, dropout,
-            attention_dropout, embeddings, max_relative_positions)
-        self.img_to_emb = nn.Linear(img_feat_size, d_model, bias=True)
-
-    def forward(self, src, img_feats, lengths=None):
-        """See :func:`EncoderBase.forward()`"""
-        self._check_args(src, lengths)
-
-        emb = self.embeddings(src)
-
-        #s_len, n_batch, emb_dim = emb.size()
-        img_emb = self.img_to_emb(img_feats).unsqueeze(0)
-        # prepend image "word"
-        emb = torch.cat([img_emb, emb], dim=0)
-        
-
-        out = emb.transpose(0, 1).contiguous()
-        mask = ~sequence_mask(lengths).unsqueeze(1)
-        # Run the forward pass of every layer of the tranformer.
-        for layer in self.transformer:
-            out = layer(out, mask)
-        out = self.layer_norm(out)
-
-        return emb, out.transpose(0, 1).contiguous(), lengths
 
 
 
