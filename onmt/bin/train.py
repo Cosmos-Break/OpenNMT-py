@@ -192,6 +192,7 @@ def _get_parser():
     opts.config_opts(parser)
     opts.model_opts(parser)
     opts.train_opts(parser)
+    opts.mmod_finetune_opts(parser)
     return parser
 
 
