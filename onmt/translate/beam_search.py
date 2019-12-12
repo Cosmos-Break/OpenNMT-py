@@ -101,13 +101,13 @@ class BeamSearch(DecodeStrategy):
         def fn_map_state(state, dim):
             return tile(state, self.beam_size, dim=dim)
 
-        if isinstance(memory_bank, tuple):
-            memory_bank = tuple(tile(x, self.beam_size, dim=1)
-                                for x in memory_bank)
-            mb_device = memory_bank[0].device
-        else:
-            memory_bank = tile(memory_bank, self.beam_size, dim=1)
-            mb_device = memory_bank.device
+        # if isinstance(memory_bank, tuple):
+        #     memory_bank = tuple(tile(x, self.beam_size, dim=1)
+        #                         for x in memory_bank)
+        #     mb_device = memory_bank[0].device
+        # else:
+        memory_bank = tile(memory_bank, self.beam_size, dim=1)
+        mb_device = memory_bank.device
         if src_map is not None:
             src_map = tile(src_map, self.beam_size, dim=1)
         if device is None:

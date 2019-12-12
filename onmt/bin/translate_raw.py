@@ -5,8 +5,8 @@ from __future__ import unicode_literals
 
 from onmt.utils.logging import init_logger
 from onmt.utils.misc import split_corpus
-from onmt.translate.multimodaltranslator import build_translator
-import numpy as np
+from onmt.translate.translator import build_translator
+
 import onmt.opts as opts
 from onmt.utils.parse import ArgumentParser
 
@@ -16,10 +16,6 @@ def translate(opt):
     logger = init_logger(opt.log_file)
 
     translator = build_translator(opt, report_score=True)
-
-    test_img_feats = np.load(opt.path_to_test_img_feats)
-    test_img_feats = test_img_feats.astype(np.float32)
-
     src_shards = split_corpus(opt.src, opt.shard_size)
     tgt_shards = split_corpus(opt.tgt, opt.shard_size)
     shard_pairs = zip(src_shards, tgt_shards)
@@ -33,9 +29,7 @@ def translate(opt):
             batch_size=opt.batch_size,
             batch_type=opt.batch_type,
             attn_debug=opt.attn_debug,
-            align_debug=opt.align_debug,
-            test_img_feats=test_img_feats,
-            multimodal_model_type=opt.multimodal_model_type
+            align_debug=opt.align_debug
             )
 
 
