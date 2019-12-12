@@ -44,6 +44,7 @@ def _get_parser():
 
     opts.config_opts(parser)
     opts.translate_opts(parser)
+    opts.mmod_finetune_translate_opts(parser)
     return parser
 
 
