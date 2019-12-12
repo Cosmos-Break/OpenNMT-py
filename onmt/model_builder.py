@@ -13,12 +13,12 @@ from onmt.encoders import str2enc
 
 from onmt.decoders import str2dec
 
-from onmt.modules import Embeddings, VecEmbedding, CopyGenerator
+from onmt.modules import Embeddings, VecEmbedding, CopyGenerator, multimodal
 from onmt.modules.util_class import Cast
 from onmt.utils.misc import use_gpu
 from onmt.utils.logging import logger
 from onmt.utils.parse import ArgumentParser
-from onmt.models import multimodal, NMTModel
+from onmt.models import NMTModel
 
 
 def build_embeddings(opt, text_field, for_encoder=True):
