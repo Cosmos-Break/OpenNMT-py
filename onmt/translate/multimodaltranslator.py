@@ -43,7 +43,8 @@ def build_translator(opt, report_score=True, logger=None, out_file=None):
     return translator
 
 class MultimodalTranslator(Translator):
-
+    def __init__(self):
+        super(MultimodalTranslator, self).__init__()
 
     def translate(
             self,
