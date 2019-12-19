@@ -490,18 +490,20 @@ class MultimodalTranslator(Translator):
         return alignement
 
     def _run_encoder(self, batch, img_feats):
+        with torch.no_grad():
+            img_feats = Variable(img_feats)
         src, src_lengths = batch.src if isinstance(batch.src, tuple) \
                            else (batch.src, None)
         if 'imgw' in self.multimodal_model_type:
             enc_states, memory_bank, src_lengths = self.model.encoder(
-            src, Variable(img_feats, volatile=True), src_lengths)
+            src, img_feats, src_lengths)
             src = torch.cat([src[0:1, :, :], src], dim=0)
         else:
             enc_states, memory_bank, src_lengths = self.model.encoder(
             src, src_lengths)
 
         if 'bank' in self.multimodal_model_type:
-            memory_bank = self.model.bridge(memory_bank, Variable(img_feats, volatile=True), src.size(0))
+            memory_bank = self.model.bridge(memory_bank, img_feats, src.size(0))
 
         if src_lengths is None:
             src_lengths = torch.Tensor(batch.batch_size) \
