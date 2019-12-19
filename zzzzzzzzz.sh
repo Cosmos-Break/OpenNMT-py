@@ -7,6 +7,30 @@ BLEU = 38.63, 70.3/46.0/32.4/23.0 (BP=0.980, ratio=0.980, hyp_len=11860, ref_len
   img_feats = Variable(img_feats.repeat(self.beam_size, 1), volatile=True)
 
 
+
+BLEU = 0, 0/0/0/0 (BP=0, ratio=0, hyp_len=0, ref_len=0)
+[2019-12-19 13:02:05,999 INFO] Translating shard 0.
+Traceback (most recent call last):
+  File "translate.py", line 6, in <module>
+    main()
+  File "/content/OpenNMT-Fork/onmt/bin/translate.py", line 55, in main
+    translate(opt)
+  File "/content/OpenNMT-Fork/onmt/bin/translate.py", line 38, in translate
+    multimodal_model_type=opt.multimodal_model_type
+  File "/content/OpenNMT-Fork/onmt/translate/multimodaltranslator.py", line 106, in translate
+    batch, data.src_vocabs, attn_debug, test_img_feats
+  File "/content/OpenNMT-Fork/onmt/translate/multimodaltranslator.py", line 242, in translate_batch
+    decode_strategy, img_feats)
+  File "/content/OpenNMT-Fork/onmt/translate/multimodaltranslator.py", line 282, in _translate_batch_with_strategy
+    src, enc_states, memory_bank, src_lengths = self._run_encoder(batch, img_feats)
+  File "/content/OpenNMT-Fork/onmt/translate/multimodaltranslator.py", line 499, in _run_encoder
+    src, img_feats, src_lengths)
+  File "/usr/local/lib/python3.6/dist-packages/torch/nn/modules/module.py", line 547, in __call__
+    result = self.forward(*input, **kwargs)
+TypeError: forward() takes from 2 to 3 positional arguments but 4 were given
+Use of uninitialized value $length_reference in numeric eq (==) at tools/multi-bleu.perl line 148.
+
+
 #best：
 !python train_mmod.py -data data/m30kbpe3000 -save_model model_snapshots/IMGW_ADAM_bpe3000_dropout0.3 -gpuid 0 -layers 6 -position_encoding -max_generator_batches 32 -batch_size 40   -accum_count 2 -epochs 250 -rnn_size 512 -src_word_vec_size 512 -tgt_word_vec_size 512 -encoder_type transformer -dropout 0.3 -path_to_train_img_feats '/content/drive/Shared drives/Aria/features_resnet50/train-resnet50-avgpool.npy' -path_to_valid_img_feats '/content/drive/Shared drives/Aria/features_resnet50/val-resnet50-avgpool.npy' -optim adam  -decay_method noam -warmup_steps 8000 -learning_rate 2 -max_grad_norm 0 -param_init 0  -param_init_glorot -label_smoothing 0.1 -decoder_type transformer  --multimodal_model_type imgw 
 # IMGD_ADAM_acc_69.33_ppl_7.84_e25.pt

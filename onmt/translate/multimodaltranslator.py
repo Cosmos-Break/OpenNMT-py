@@ -43,6 +43,8 @@ def build_translator(opt, report_score=True, logger=None, out_file=None):
     return translator
 
 class MultimodalTranslator(Translator):
+
+
     def translate(
             self,
             src,
@@ -297,8 +299,9 @@ class MultimodalTranslator(Translator):
             decode_strategy.initialize(memory_bank, src_lengths, src_map)
         if fn_map_state is not None:
             self.model.decoder.map_state(fn_map_state)
-
-        img_feats = Variable(img_feats.repeat(self.beam_size, 1), volatile=True)
+        
+        with torch.no_grad():
+            img_feats = Variable(img_feats.repeat(self.beam_size, 1))
 
         # (3) Begin decoding step by step:
         for step in range(decode_strategy.max_length):
@@ -346,7 +349,7 @@ class MultimodalTranslator(Translator):
         results["attention"] = decode_strategy.attention
         if self.report_align:
             results["alignment"] = self._align_forward(
-                batch, decode_strategy.predictions)
+                batch, decode_strategy.predictions, img_feats)
         else:
             results["alignment"] = [[] for _ in range(batch_size)]
         return results
@@ -443,7 +446,7 @@ class MultimodalTranslator(Translator):
             len(predictions), -1, full_tgt.size(-1))  # (batch, n_best, tgt_l)
         return batched_nbest_predict
 
-    def _align_forward(self, batch, predictions):
+    def _align_forward(self, batch, predictions,img_feats):
         """
         For a batch of input and its prediction, return a list of batch predict
         alignment src indice Tensor in size ``(batch, n_best,)``.
@@ -460,7 +463,7 @@ class MultimodalTranslator(Translator):
 
         n_best = batch_tgt_idxs.size(1)
         # (1) Encoder forward.
-        src, enc_states, memory_bank, src_lengths = self._run_encoder(batch)
+        src, enc_states, memory_bank, src_lengths = self._run_encoder(batch, img_feats)
 
         # (2) Repeat src objects `n_best` times.
         # We use batch_size x n_best, get ``(src_len, batch * n_best, nfeat)``
@@ -489,7 +492,7 @@ class MultimodalTranslator(Translator):
             alignment_attn, prediction_mask, src_lengths, n_best)
         return alignement
 
-    def _run_encoder(self, batch, img_feats):
+    def _run_encoder(self, batch, img_feats=None):
         with torch.no_grad():
             img_feats = Variable(img_feats)
         src, src_lengths = batch.src if isinstance(batch.src, tuple) \
