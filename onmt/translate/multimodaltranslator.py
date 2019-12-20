@@ -499,6 +499,7 @@ class MultimodalTranslator(Translator):
             print("enterskjsdlkfjlaksdjf;alskdjf;laskdjf;laskdjf;laskdjf;alskdjf")
             enc_states, memory_bank, src_lengths = self.model.encoder(
             src, img_feats, src_lengths)
+            #调用父类的model的encoder
             src = torch.cat([src[0:1, :, :], src], dim=0)
         else:
             enc_states, memory_bank, src_lengths = self.model.encoder(
