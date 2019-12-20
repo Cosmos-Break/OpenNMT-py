@@ -1,5 +1,4 @@
 configargparse
-torch==1.2.0
 torchtext==0.4.0
 torchvision==0.4.0
 cffi
