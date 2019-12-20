@@ -16,6 +16,12 @@ def translate(opt):
     logger = init_logger(opt.log_file)
 
     translator = build_translator(opt, report_score=True)
+    # MultimodalTranslator 继承 Translator，主要覆盖了translate函数
+    # 有些函数没有覆盖，被我原封不动地拷贝进了MultimodalTranslator，
+    # 其实可以直接在子类里面调用父类的方法，
+    # 用super(MultimodalTranslator, self).method() 
+    # 这个以后再改吧。
+
 
     test_img_feats = np.load(opt.path_to_test_img_feats)
     test_img_feats = test_img_feats.astype(np.float32)

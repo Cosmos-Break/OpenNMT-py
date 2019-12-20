@@ -1,3 +1,28 @@
+[2019-12-20 16:07:29,432 INFO] Translating shard 0.
+*****************************************************************************
+enterskjsdlkfjlaksdjf;alskdjf;laskdjf;laskdjf;laskdjf;alskdjf
+<class 'onmt.decoders.ensemble.EnsembleEncoder'>
+Traceback (most recent call last):
+  File "translate.py", line 6, in <module>
+    main()
+  File "/home/mhxu/OpenNMT_fork/onmt/bin/translate.py", line 61, in main
+    translate(opt)
+  File "/home/mhxu/OpenNMT_fork/onmt/bin/translate.py", line 44, in translate
+    multimodal_model_type=opt.multimodal_model_type
+  File "/home/mhxu/OpenNMT_fork/onmt/translate/multimodaltranslator.py", line 106, in translate
+    batch, data.src_vocabs, attn_debug, test_img_feats
+  File "/home/mhxu/OpenNMT_fork/onmt/translate/multimodaltranslator.py", line 242, in translate_batch
+    decode_strategy, img_feats)
+  File "/home/mhxu/OpenNMT_fork/onmt/translate/multimodaltranslator.py", line 282, in _translate_batch_with_strategy
+    src, enc_states, memory_bank, src_lengths = self._run_encoder(batch, img_feats)
+  File "/home/mhxu/OpenNMT_fork/onmt/translate/multimodaltranslator.py", line 502, in _run_encoder
+    src, img_feats, src_lengths)
+  File "/home/mhxu/anaconda3/envs/OpenNMT/lib/python3.6/site-packages/torch/nn/modules/module.py", line 547, in __call__
+    result = self.forward(*input, **kwargs)
+TypeError: forward() takes from 2 to 3 positional arguments but 4 were given
+Use of uninitialized value $length_reference in numeric eq (==) at tools/multi-bleu.perl line 148
+
+
 PRED AVG SCORE: -0.2502, PRED PPL: 1.2843
 BLEU = 38.63, 70.3/46.0/32.4/23.0 (BP=0.980, ratio=0.980, hyp_len=11860, ref_len=12103)
 [2019-12-19 12:16:16,213 INFO] Translating shard 0.
@@ -7,28 +32,6 @@ BLEU = 38.63, 70.3/46.0/32.4/23.0 (BP=0.980, ratio=0.980, hyp_len=11860, ref_len
   img_feats = Variable(img_feats.repeat(self.beam_size, 1), volatile=True)
 
 
-
-BLEU = 0, 0/0/0/0 (BP=0, ratio=0, hyp_len=0, ref_len=0)
-[2019-12-19 13:02:05,999 INFO] Translating shard 0.
-Traceback (most recent call last):
-  File "translate.py", line 6, in <module>
-    main()
-  File "/content/OpenNMT-Fork/onmt/bin/translate.py", line 55, in main
-    translate(opt)
-  File "/content/OpenNMT-Fork/onmt/bin/translate.py", line 38, in translate
-    multimodal_model_type=opt.multimodal_model_type
-  File "/content/OpenNMT-Fork/onmt/translate/multimodaltranslator.py", line 106, in translate
-    batch, data.src_vocabs, attn_debug, test_img_feats
-  File "/content/OpenNMT-Fork/onmt/translate/multimodaltranslator.py", line 242, in translate_batch
-    decode_strategy, img_feats)
-  File "/content/OpenNMT-Fork/onmt/translate/multimodaltranslator.py", line 282, in _translate_batch_with_strategy
-    src, enc_states, memory_bank, src_lengths = self._run_encoder(batch, img_feats)
-  File "/content/OpenNMT-Fork/onmt/translate/multimodaltranslator.py", line 499, in _run_encoder
-    src, img_feats, src_lengths)
-  File "/usr/local/lib/python3.6/dist-packages/torch/nn/modules/module.py", line 547, in __call__
-    result = self.forward(*input, **kwargs)
-TypeError: forward() takes from 2 to 3 positional arguments but 4 were given
-Use of uninitialized value $length_reference in numeric eq (==) at tools/multi-bleu.perl line 148.
 
 
 #best：

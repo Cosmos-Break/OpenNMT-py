@@ -136,30 +136,6 @@ class TransformerEncoder(EncoderBase):
 
 
 class MultiModalTransformerEncoder(TransformerEncoder):
-    """
-    The Transformer encoder from "Attention is All You Need".
-
-
-    .. mermaid::
-
-       graph BT
-          A[input]
-          B[multi-head self-attn]
-          C[feed forward]
-          O[output]
-          A --> B
-          B --> C
-          C --> O
-
-
-
-    Args:
-       num_layers (int): number of encoder layers
-       hidden_size (int): number of hidden units
-       dropout (float): dropout parameters
-       embeddings (:obj:`onmt.modules.Embeddings`):
-          embeddings to use, should have positional encodings
-    """
     def __init__(self, num_layers, d_model, heads, d_ff, dropout,
                  attention_dropout, embeddings, max_relative_positions, img_feat_size):
         super(MultiModalTransformerEncoder, self).__init__(

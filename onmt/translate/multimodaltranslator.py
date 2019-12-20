@@ -261,7 +261,6 @@ class MultimodalTranslator(Translator):
         """
 
 
-        print("*****************************************************************************")
         # (0) Prep the components of the search.
         use_src_map = self.copy_attn
         parallel_paths = decode_strategy.parallel_paths  # beam_size
@@ -496,7 +495,6 @@ class MultimodalTranslator(Translator):
         src, src_lengths = batch.src if isinstance(batch.src, tuple) \
                            else (batch.src, None)
         if 'imgw' in self.multimodal_model_type:
-            print("enterskjsdlkfjlaksdjf;alskdjf;laskdjf;laskdjf;laskdjf;alskdjf")
             enc_states, memory_bank, src_lengths = self.model.encoder(
             src, img_feats, src_lengths)
             #调用父类的model的encoder
@@ -513,6 +511,8 @@ class MultimodalTranslator(Translator):
                                .type_as(memory_bank) \
                                .long() \
                                .fill_(memory_bank.size(0))
+        
+
         return src, enc_states, memory_bank, src_lengths
 
     def _decode_and_generate(

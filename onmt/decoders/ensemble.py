@@ -36,11 +36,18 @@ class EnsembleEncoder(EncoderBase):
         super(EnsembleEncoder, self).__init__()
         self.model_encoders = nn.ModuleList(model_encoders)
 
-    def forward(self, src, lengths=None):
-        enc_hidden, memory_bank, _ = zip(*[
+    def forward(self, src, img_feats=None, lengths=None):
+        if img_feats is not None:
+            enc_hidden, memory_bank, _ = zip(*[
+            model_encoder(src, img_feats, lengths)
+            for model_encoder in self.model_encoders])
+        else:
+            enc_hidden, memory_bank, _ = zip(*[
             model_encoder(src, lengths)
             for model_encoder in self.model_encoders])
         return enc_hidden, memory_bank, lengths
+
+        
 
 
 class EnsembleDecoder(DecoderBase):
