@@ -43,9 +43,6 @@ def build_translator(opt, report_score=True, logger=None, out_file=None):
     return translator
 
 class MultimodalTranslator(Translator):
-    def __init__(self):
-        super(MultimodalTranslator, self).__init__()
-
     def translate(
             self,
             src,
@@ -264,7 +261,7 @@ class MultimodalTranslator(Translator):
         """
 
 
-        
+        print("**********************************************************")
         # (0) Prep the components of the search.
         use_src_map = self.copy_attn
         parallel_paths = decode_strategy.parallel_paths  # beam_size
