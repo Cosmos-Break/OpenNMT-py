@@ -11,7 +11,7 @@ setup(
     description='A python implementation of OpenNMT',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    version='1.0.0.rc2',
+    version='1.0.0',
     packages=find_packages(),
     project_urls={
         "Documentation": "http://opennmt.net/OpenNMT-py/",
@@ -36,6 +36,7 @@ setup(
             "onmt_train=onmt.bin.train:main",
             "onmt_translate=onmt.bin.translate:main",
             "onmt_preprocess=onmt.bin.preprocess:main",
+            "onmt_average_models=onmt.bin.average_models:main"
         ],
     }
 )
