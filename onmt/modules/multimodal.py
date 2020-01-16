@@ -8,7 +8,7 @@ from torch.autograd import Variable
 import onmt
 import onmt.inputters
 from onmt.utils.misc import aeq, sequence_mask
-from onmt.utils.loss import NMTLossCompute
+from onmt.utils.loss import NMTLossCompute, shards
 
 class MultiModalNMTModel(nn.Module):
     """
@@ -82,16 +82,14 @@ class MultiModalMemoryBankGate(nn.Module):
         self.feat_to_gate = nn.Linear(
             img_feat_size, bank_size, bias=True)
         #nn.init.constant_(self.feat_to_gate.bias, 1.0) # newer pytorch
-        nn.init.constant(self.feat_to_gate.bias, 1.0)
+        nn.init.constant_(self.feat_to_gate.bias, 1.0)
         self.add = add
 
     def forward(self, bank, img_feats, n_time):
         feat_to_gate = self.feat_to_gate(img_feats)
         feat_to_gate = feat_to_gate.expand(n_time, -1, -1)
         bank_to_gate = self.bank_to_gate(bank)
-        #bank_to_gate = bank_to_gate.view(-1, bank_to_gate.size(2))
-        #print('bank_to_gate flat', bank_to_gate.shape)
-        gate = F.sigmoid(feat_to_gate + bank_to_gate) + self.add
+        gate = torch.sigmoid(feat_to_gate + bank_to_gate) + self.add
         gate = gate / (1. + self.add)
         return bank * gate
 
@@ -102,7 +100,7 @@ class MultiModalGenerator(nn.Module):
         self.vocab_size = self.linear.weight.size(0)
         self.gate = nn.Linear(img_feat_size, self.vocab_size, bias=True)
         #nn.init.constant_(self.gate.bias, 1.0) # newer pytorch
-        nn.init.constant(self.gate.bias, 1.0)
+        nn.init.constant_(self.gate.bias, 1.0)
         self.logsoftmax = nn.LogSoftmax(dim=-1)
         self.add = add
         self.use_hidden = use_hidden
@@ -116,19 +114,69 @@ class MultiModalGenerator(nn.Module):
         if self.use_hidden:
             pre_sigmoid = pre_sigmoid.repeat(n_time, 1)
             hidden_to_gate = self.hidden_to_gate(hidden)
-            gate = F.sigmoid(pre_sigmoid + hidden_to_gate) + self.add
+            gate = torch.sigmoid(pre_sigmoid + hidden_to_gate) + self.add
         else:
-            gate = F.sigmoid(pre_sigmoid) + self.add
+            gate = torch.sigmoid(pre_sigmoid) + self.add
             gate = gate.repeat(n_time, 1)
         gate = gate / (1. + self.add)
         return self.logsoftmax(proj * gate)
 
 class MultiModalLossCompute(NMTLossCompute):
+    def __call__(self,
+                 batch,
+                 output,
+                 attns,
+                 img_feats,
+                 normalization=1.0,
+                 shard_size=0,
+                 trunc_start=0,
+                 trunc_size=None):
+        """Compute the forward loss, possibly in shards in which case this
+        method also runs the backward pass and returns ``None`` as the loss
+        value.
+
+        Also supports truncated BPTT for long sequences by taking a
+        range in the decoder output sequence to back propagate in.
+        Range is from `(trunc_start, trunc_start + trunc_size)`.
+
+        Note sharding is an exact efficiency trick to relieve memory
+        required for the generation buffers. Truncation is an
+        approximate efficiency trick to relieve the memory required
+        in the RNN buffers.
+
+        Args:
+          batch (batch) : batch of labeled examples
+          output (:obj:`FloatTensor`) :
+              output of decoder model `[tgt_len x batch x hidden]`
+          attns (dict) : dictionary of attention distributions
+              `[tgt_len x batch x src_len]`
+          normalization: Optional normalization factor.
+          shard_size (int) : maximum number of examples in a shard
+          trunc_start (int) : starting position of truncation window
+          trunc_size (int) : length of truncation window
+
+        Returns:
+            A tuple with the loss and a :obj:`onmt.utils.Statistics` instance.
+        """
+        if trunc_size is None:
+            trunc_size = batch.tgt.size(0) - trunc_start
+        trunc_range = (trunc_start, trunc_start + trunc_size)
+        shard_state = self._make_shard_state(batch, output, trunc_range, attns)
+        if shard_size == 0:
+            loss, stats = self._compute_loss(batch, **shard_state, img_feats=img_feats)
+            return loss / float(normalization), stats
+        batch_stats = onmt.utils.Statistics()
+        for shard in shards(shard_state, shard_size):
+            loss, stats = self._compute_loss(batch, **shard, img_feats=img_feats)
+            loss.div(float(normalization)).backward()
+            batch_stats.update(stats)
+        return None, batch_stats
+
     def _compute_loss(self, batch, output, target, img_feats, std_attn=None,
                       coverage_attn=None, align_head=None, ref_align=None):
         bottled_output = self._bottle(output)
 
-        scores = self.generator(bottled_output, img_feats, output.size[0])
+        scores = self.generator(bottled_output, img_feats, output.size(0))
 
         ### Copypasta from superclass
         gtruth = target.view(-1)

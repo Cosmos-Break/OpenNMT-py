@@ -65,6 +65,7 @@ def main(opt, device_id, batch_queue=None, semaphore=None):
             for line in fobj:
                 train_feat_indices.append(int(line))
         train_feat_indices = np.array(train_feat_indices, dtype=np.int64)
+        print(train_img_feats.size())
         # add mean feature, addressable by -1
         mean_feat = train_img_feats.mean(axis=0, keepdims=True)
         train_img_feats = np.concatenate([train_img_feats, mean_feat], axis=0)

@@ -59,6 +59,7 @@ def build_trainer(opt, device_id, model, fields, optim, train_img_feats, valid_i
         if opt.early_stopping > 0 else None
 
     report_manager = onmt.utils.build_report_manager(opt, gpu_rank)
+    print("tttttttttttttttttttttttttttttttttttttttttttttttttt")
     trainer = onmt.Trainer(model, train_loss, valid_loss, optim, trunc_size,
                            shard_size, norm_method,
                            accum_count, accum_steps,
@@ -425,11 +426,11 @@ class Trainer(object):
                             batch,
                             outputs,
                             attns,
+                            img_feats=img_feats,
                             normalization=normalization,
                             shard_size=self.shard_size,
                             trunc_start=j,
-                            trunc_size=trunc_size,
-                            img_feats=img_feats)
+                            trunc_size=trunc_size)
                     else:
                         loss, batch_stats = self.train_loss(
                             batch,

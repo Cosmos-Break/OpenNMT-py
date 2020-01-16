@@ -195,10 +195,7 @@ class MultimodalTranslator(Translator):
     
     def translate_batch(self, batch, src_vocabs, attn_debug, test_img_feats):
         """Translate a batch of sentences."""
-        # extract indices for all entries in the mini-batch
-        idxs = batch.indices.cpu().data.numpy()
-        # load image features for this minibatch into a pytorch Tensor
-        img_feats = torch.from_numpy(test_img_feats[idxs]).cuda()
+        
 
         
 
@@ -233,7 +230,7 @@ class MultimodalTranslator(Translator):
                     stepwise_penalty=self.stepwise_penalty,
                     ratio=self.ratio)
             return self._translate_batch_with_strategy(batch, src_vocabs,
-                                                       decode_strategy, img_feats)
+                                                       decode_strategy, test_img_feats)
 
                                                 
     def _translate_batch_with_strategy(
@@ -241,7 +238,7 @@ class MultimodalTranslator(Translator):
             batch,
             src_vocabs,
             decode_strategy,
-            img_feats):
+            test_img_feats):
         """Translate a batch of sentences step by step using cache.
 
         Args:
@@ -253,7 +250,10 @@ class MultimodalTranslator(Translator):
         Returns:
             results (dict): The translation results.
         """
-
+        # extract indices for all entries in the mini-batch
+        idxs = batch.indices.cpu().data.numpy()
+        # load image features for this minibatch into a pytorch Tensor
+        img_feats = torch.from_numpy(test_img_feats[idxs]).cuda()
 
         # (0) Prep the components of the search.
         use_src_map = self.copy_attn
@@ -291,13 +291,16 @@ class MultimodalTranslator(Translator):
         if fn_map_state is not None:
             self.model.decoder.map_state(fn_map_state)
         
-        with torch.no_grad():
-            img_feats = Variable(img_feats.repeat(self.beam_size, 1))
+        
 
         # (3) Begin decoding step by step:
         for step in range(decode_strategy.max_length):
             decoder_input = decode_strategy.current_predictions.view(1, -1, 1)
+            with torch.no_grad():
+                img_feats = torch.from_numpy(test_img_feats[decode_strategy.batch_offset]).cuda()
+                img_feats = Variable(img_feats.repeat(self.beam_size, 1))
 
+        
             log_probs, attn = self._decode_and_generate(
                 decoder_input,
                 memory_bank,

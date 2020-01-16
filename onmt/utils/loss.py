@@ -39,7 +39,7 @@ def build_loss_compute(model, tgt_field, opt, train=True):
         criterion = LabelSmoothingLoss(
             opt.label_smoothing, len(tgt_field.vocab), ignore_index=padding_idx
         )
-    elif isinstance(model.generator[-1], LogSparsemax):
+    elif "generator" not in opt.multimodal_model_type and isinstance(model.generator[-1], LogSparsemax):
         criterion = SparsemaxLoss(ignore_index=padding_idx, reduction='sum')
     else:
         criterion = nn.NLLLoss(ignore_index=padding_idx, reduction='sum')
@@ -48,6 +48,7 @@ def build_loss_compute(model, tgt_field, opt, train=True):
     # probabilities, only the first part of the generator needs to be
     # passed to the NMTLossCompute. At the moment, the only supported
     # loss function of this kind is the sparsemax loss.
+    print(model.generator)
     use_raw_logits = isinstance(criterion, SparsemaxLoss)
     loss_gen = model.generator[0] if use_raw_logits else model.generator
     if opt.copy_attn:
@@ -60,11 +61,13 @@ def build_loss_compute(model, tgt_field, opt, train=True):
             compute = onmt.modules.multimodal.MultiModalLossCompute(
                criterion, loss_gen, lambda_coverage=opt.lambda_coverage,
                 lambda_align=opt.lambda_align)
-        compute = NMTLossCompute(
+        else:
+            compute = NMTLossCompute(
             criterion, loss_gen, lambda_coverage=opt.lambda_coverage,
             lambda_align=opt.lambda_align)
     compute.to(device)
-
+    print(type(compute))
+    print(model.generator)
     return compute
 
 
